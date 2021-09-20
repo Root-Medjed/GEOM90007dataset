@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Name: Tuohuang Li -->
+    <!-- ID: 1205166 -->
+    <link rel="stylesheet" type="text/css" href="homicides_assignment2.css" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+
+    <!-- Link MapBox -->
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.0/chart.min.js"></script>
+<!-- Styles -->
+</head>
+<body>
+  <!-- Load the `mapbox-gl-geocoder` plugin. -->
+  <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.min.js"></script>
+  <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.css" type="text/css">
+
+  <!-- Main -->
+  <main>
+    <!-- Header -->
+    <div class="header">
+      <div><span class="title">Where the murder happened</span></div>
+      <div><span class="title2">Mapping of homicides in major American cities</span></div>
+    </div>
+
+    <div class="content" style="display: ruby-text;">
+      <p>
+        <span class="caption_text">- On the northeast side of Indianapolis, a billboard solicits tips in an
+          unsolved killing. (source: Whitney Leaming/The Washington Post; viewed at 16th September 2021)</span>
+      </p>
+      <p class="blocktext">
+        The Washington Post collected data on more than 52,000 criminal
+        homicides over the past decade in 50 of the largest cities across the US. The Post mapped each
+        homicide, identifying arrest rates by geography in each city, sharing the analysis with the
+        local police department prior to publication. (Statistics from The Washington Post (2018))
+      </p>
+    </div>
+
+    <div class='tableauPlaceholder' id='viz1631973537396' style='position: absolute'>
+      <h2> Victims Data </h2>
+      <h5>Demographic trends</h5>
+      <p class="blocktext">- Older teens and young adults have the highest homicide victimization rates.</p>
+      <p class="blocktext">- Most victims in homicides are male .</p>
+      <p class="blocktext">- The dataset shows that blacks are disproportionately represented as homicide victims.</p>
+      
+      <!-- Reference: 
+        Tableau, (2021). https://help.tableau.com/current/pro/desktop/en-us/publish_workbooks_howto.htm.
+        Viewed: 18 September 2021-->
+
+      <noscript><a href='#'>
+          <img alt='Dashboard 1 ' src='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;As&#47;Assignment2Figurs&#47;Dashboard1&#47;1_rss.png' style='border: none' />
+        </a></noscript><object class='tableauViz' style='display:none;'>
+        <param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' />
+        <param name='embed_code_version' value='3' />
+        <param name='site_root' value='' />
+        <param name='name' value='Assignment2Figurs&#47;Dashboard1' />
+        <param name='tabs' value='no' />
+        <param name='toolbar' value='yes' />
+        <param name='static_image' value='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;As&#47;Assignment2Figurs&#47;Dashboard1&#47;1.png' />
+        <param name='animate_transition' value='yes' />
+        <param name='display_static_image' value='yes' />
+        <param name='display_spinner' value='yes' />
+        <param name='display_overlay' value='yes' />
+        <param name='display_count' value='yes' />
+        <param name='language' value='en-US' />
+        <param name='filter' value='publish=yes' />
+      </object></div>   
+
+      <h5>Case Status</h5>
+      <p class="blocktext">Over the past dacade, number of murder cases resolved without an arrest is high. 
+        In this section, homicides case status has been visualized by each cities.
+
+          <canvas id="chart1"></canvas>
+          <canvas id="chart2"></canvas>
+
+      </p>
+
+      <p class="blocktext">
+        The following map shows all criminal homicides cases.
+        Explore data by city, please enter the city name in the search box.
+      </p>
+      <div id="map" style="align-self:inherit; width: 1366px; height: 700px;">
+        <div class="map-overlay" id="legend"></div>
+        <div class="map-overlay" id="title">
+          <h2>Murder Case Map</h2>
+          <div id="info">
+            <p>Move your mouse over a dot to view case details.</p>
+          </div>
+        </div>
+        <nav id="buttons"></nav>
+      </div>
+
+      <p><em>Reference: The Washington Post, (2018). 
+        data-homicides [Data set]. https://github.com/washingtonpost/data-homicides</em></p>
+
+      
+
+  </main>
+
+<!-- Script -->
+<script>
+//Month mapping for hover function on map
+let MonthNameMapping = {
+  "01": "January",
+  "02": "February",
+  "03": "March",
+  "04": "April",
+  "05": "May",
+  "06": "June",
+  "07": "July",
+  "08": "August",
+  "09": "September",
+  "10": "October",
+  "11": "November",
+  "12": "December"
+};
+
+//load map from mapbox
+mapboxgl.accessToken = 'pk.eyJ1IjoicGlzdGFjaGlvc2NvbmUiLCJhIjoiY2t0ZHEwejEwMmk4eTJubGF6Ymo4NzR4ZyJ9.-yrT8Uy8vZow28_U4qtenA';
+var map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/pistachioscone/cktkqcdxu1lui17qwe1jmvuv7'
+});
+
+
+//The following step is to set different colors by case status
+
+//Reference: the University of Melbourne, (2021). Workshop 06 materials, 
+//https://canvas.lms.unimelb.edu.au/courses/105922/pages/week-6-mapping-using-mapbox?module_item_id=2962941, Viewed: 16 September 2021
+map.on('load', e => {
+  let layers = [{
+      "name": "Open/No arrest",
+      "color": "#fbb32d"
+    },
+    {
+      "name": "Closed by arrest",
+      "color": "#10bc83"
+    },
+    {
+      "name": "Closed without arrest",
+      "color": "#2a7cef"
+    }
+  ];
+
+
+  //add legend to the map
+  let legend = document.querySelector('#legend');
+
+  for (let layer of layers) {
+    let item = document.createElement('div');
+
+    let key = document.createElement('span');
+    key.classList.add('legend-key');
+    key.style.backgroundColor = layer.color;
+
+    let value = document.createElement('span');
+    value.innerHTML = layer.name;
+
+    item.appendChild(key);
+    item.appendChild(value);
+    legend.appendChild(item);
+  }
+
+  // Reference: the University of Melbourne, (2021). Workshop 07 materials, 
+  //https://canvas.lms.unimelb.edu.au/courses/105922/pages/week-7-styling-with-mapbox?module_item_id=2962942, Viewed: 16 September 2021
+
+  map.on('mousemove', e => {
+    let caseinfo = map.queryRenderedFeatures(e.point, {
+      layers: ['homicides-over-the-past-decade']
+    });
+    if (caseinfo.length > 0) {
+      
+      var case_dispos = caseinfo[0].properties.disposition.toString();
+
+      //the following if statement aims to display different colors based on different case dispositions
+
+      if (case_dispos == "Open/No arrest") {
+
+        document.querySelector('#info').innerHTML = '<p>' + 'Case status: ' + 
+      '<span class="status" style="background-color: #fbb32d;">' + caseinfo[0].properties.disposition + '</span>' +
+      '</p><p><em>' + caseinfo[0].properties.victim_first + ' ' + caseinfo[0].properties.victim_last +
+      '</em></p><p><em>' + caseinfo[0].properties.victim_race + ' . ' + caseinfo[0].properties.victim_sex +
+      ' . ' + 'Age: ' + caseinfo[0].properties.victim_age + '</em></p>';
+      }
+
+      else if (case_dispos == "Closed by arrest") {
+        
+        document.querySelector('#info').innerHTML = '<p>' + 'Case status: ' + 
+      '<span class="status" style="background-color: #10bc83;">' + caseinfo[0].properties.disposition + '</span>' +
+      '</p><p><em>' + caseinfo[0].properties.victim_first + ' ' + caseinfo[0].properties.victim_last +
+      '</em></p><p><em>' + caseinfo[0].properties.victim_race + ' . ' + caseinfo[0].properties.victim_sex +
+      ' . ' + 'Age: ' + caseinfo[0].properties.victim_age + '</em></p>';
+      }
+
+      else if (case_dispos == "Closed without arrest") {
+        
+        document.querySelector('#info').innerHTML = '<p>' + 'Case status: ' + 
+      '<span class="status" style="background-color: #2a7cef;">' + caseinfo[0].properties.disposition + '</span>' +
+      '</p><p><em>' + caseinfo[0].properties.victim_first + ' ' + caseinfo[0].properties.victim_last +
+      '</em></p><p><em>' + caseinfo[0].properties.victim_race + ' . ' + caseinfo[0].properties.victim_sex +
+      ' . ' + 'Age: ' + caseinfo[0].properties.victim_age + '</em></p>';
+      }
+      
+
+    } else {
+      document.querySelector('#info').innerHTML = '<p>Move your mouse over a building to view details.</p>';
+    }
+  });
+
+
+  // Change the icon to a pointer icon when you mouse over a building
+  map.on('mouseenter', 'homicides-over-the-past-decade', e => {
+    map.getCanvas().style.cursor = 'pointer';
+  });
+
+  // Change it back to a pan icon when it leaves.
+  map.on('mouseleave', 'homicides-over-the-past-decade', e => {
+    map.getCanvas().style.cursor = '';
+  });
+
+
+  // to add the pop-up effect when clicking on one of the murder location on map
+  map.on('click', 'homicides-over-the-past-decade', e => {
+    var date = e.features[0].properties.reported_date.toString();
+    var year = date.slice(0, 4);
+    var month = MonthNameMapping[date.slice(4, 6)];
+    var day = date.slice(6, 8);
+
+    new mapboxgl.Popup()
+      .setLngLat(e.lngLat)
+      .setHTML('<p style="font-weight: bold;">' + 'Killed: ' + month + ' ' + day + ', ' + year + 
+      '</p><p><em>' + "Case Number " + e.features[0].properties.uid + '</em></p>')
+      .addTo(map);
+  });
+
+    //add control to the map
+
+    map.addControl(
+    new MapboxGeocoder({
+      accessToken: mapboxgl.accessToken,
+      mapboxgl: mapboxgl
+    })
+  );
+
+  const scale = new mapboxgl.ScaleControl({
+    maxWidth: 100,
+    unit: 'imperial'
+  });
+  
+  map.addControl(scale);
+  scale.setUnit('metric');
+
+  map.addControl(new mapboxgl.NavigationControl());
+  map.addControl(new mapboxgl.FullscreenControl());
+
+});
+
+//load tableau page
+
+var divElement = document.getElementById('viz1631973537396');                    
+var vizElement = divElement.getElementsByTagName('object')[0]; 
+
+if ( divElement.offsetWidth > 800 ) { 
+  vizElement.style.width='1654px';vizElement.style.height='1196px';
+} 
+else if ( divElement.offsetWidth > 500 ) { 
+  vizElement.style.width='1654px';vizElement.style.height='1196px';
+} 
+else { 
+  vizElement.style.width='100%';vizElement.style.height='1127px';
+}                     
+
+var scriptElement = document.createElement('script');                    
+scriptElement.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';                    
+vizElement.parentNode.insertBefore(scriptElement, vizElement);    
+
+//Case info mapping
+const url = "https://raw.githubusercontent.com/Root-Medjed/GEOM90007dataset/main/homicide-data.json";
+
+//define a function to retrieve json data
+async function getData(url) {
+
+//1. get csv- fetch data
+const response = await fetch(url);
+const jsonData = await response.json();
+const case_obj = [];
+
+for (var i=0; i<jsonData.length; i++) {
+  case_obj.push(jsonData[i].disposition);
+}
+
+//Reference: B. Vlad, (2016), https://stackoverflow.com/questions/5667888/counting-the-occurrences-frequency-of-array-elements, 
+//Viewed: 16 September 2021
+
+const countOccurrences = arr => arr.reduce((prev, curr) => (
+  prev[curr] = ++prev[curr] || 1, prev), {}
+);
+
+const counts = countOccurrences(case_obj);
+
+//plot with chart js
+let case_status = [{
+      "Total_disposition": "Open/No arrest",
+      "Total_Victims": counts["Open/No arrest"]
+    },
+    {
+      "Total_disposition": "Closed by arrest",
+      "Total_Victims": counts["Closed by arrest"]
+    },
+    {
+      "Total_disposition": "Closed without arrest",
+      "Total_Victims": counts["Closed without arrest"]
+    }
+  ];
+
+  let chart = new Chart('chart1', {
+    type: 'bar',
+    data: {
+      datasets: [{
+        data: case_status,
+        parsing: {
+          xAxisKey: "Total_disposition",
+          yAxisKey: "Total_Victims"
+        },
+        backgroundColor: [
+          '#FFBE45',
+          '#6dc9b1',
+          '#6c99d9'
+          
+        ],
+        barPercentage: 0.5,
+        barThickness: 50
+      }]
+    },
+    options: {
+      scales: {
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {},
+          title: {}
+        },
+        y: {
+          grid: {},
+          ticks: {},
+          title: {}
+        }
+      },
+      animation: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        title: {
+          display: true,
+          text: 'Case status, 2007-2017'
+        },
+        tooltip: {
+          
+        displayColors: false,
+        yAlign: 'bottom',
+        titleAlign: 'center',
+        bodyAlign: 'center'
+        }
+      }
+    }
+  });
+
+  
+}
+//Call getData function
+getData(url);
+
+
+//count murder cases for each city
+let table = [
+	{
+		"City": "Albuquerque",
+		"Total number of cases": 378,
+		"Percentagewitharrest": 0.61
+	},
+	{
+		"City": "Atlanta",
+		"Total number of cases": 973,
+		"Percentagewitharrest": 0.62
+	},
+	{
+		"City": "Baltimore",
+		"Total number of cases": 2827,
+		"Percentagewitharrest": 0.35
+	},
+	{
+		"City": "Baton Rouge",
+		"Total number of cases": 424,
+		"Percentagewitharrest": 0.54
+	},
+	{
+		"City": "Birmingham",
+		"Total number of cases": 800,
+		"Percentagewitharrest": 0.57
+	},
+	{
+		"City": "Boston",
+		"Total number of cases": 614,
+		"Percentagewitharrest": 0.50
+	},
+	{
+		"City": "Buffalo",
+		"Total number of cases": 521,
+		"Percentagewitharrest": 0.39
+	},
+	{
+		"City": "Charlotte",
+		"Total number of cases": 687,
+		"Percentagewitharrest": 0.70
+	},
+	{
+		"City": "Chicago",
+		"Total number of cases": "5535",
+		"Percentagewitharrest": 0.26
+	},
+	{
+		"City": "Cincinnati",
+		"Total number of cases": 694,
+		"Percentagewitharrest": 0.56
+	},
+	{
+		"City": "Columbus",
+		"Total number of cases": 1084,
+		"Percentagewitharrest": 0.47
+	},
+	{
+		"City": "Dallas",
+		"Total number of cases": 1567,
+		"Percentagewitharrest": 0.52
+	},
+	{
+		"City": "Denver",
+		"Total number of cases": 312,
+		"Percentagewitharrest": 0.45
+	},
+	{
+		"City": "Detroit",
+		"Total number of cases": 2519,
+		"Percentagewitharrest": 0.41
+	},
+	{
+		"City": "Durham",
+		"Total number of cases": 276,
+		"Percentagewitharrest": 0.63
+	},
+	{
+		"City": "Fort Worth",
+		"Total number of cases": 549,
+		"Percentagewitharrest": 0.54
+	},
+	{
+		"City": "Fresno",
+		"Total number of cases": 487,
+		"Percentagewitharrest": 0.65
+	},
+	{
+		"City": "Houston",
+		"Total number of cases": 2942,
+		"Percentagewitharrest": 0.49
+	},
+	{
+		"City": "Indianapolis",
+		"Total number of cases": 1322,
+		"Percentagewitharrest": 0.55
+	},
+	{
+		"City": "Jacksonville",
+		"Total number of cases": 1168,
+		"Percentagewitharrest": 0.49
+	},
+	{
+		"City": "Kansas City",
+		"Total number of cases": 1190,
+		"Percentagewitharrest": 0.59
+	},
+	{
+		"City": "Las Vegas",
+		"Total number of cases": 1381,
+		"Percentagewitharrest": 0.59
+	},
+	{
+		"City": "Long Beach",
+		"Total number of cases": 378,
+		"Percentagewitharrest": 0.59
+	},
+	{
+		"City": "Los Angeles",
+		"Total number of cases": 2257,
+		"Percentagewitharrest": 0.51
+	},
+	{
+		"City": "Louisville",
+		"Total number of cases": 576,
+		"Percentagewitharrest": 0.55
+	},
+	{
+		"City": "Memphis",
+		"Total number of cases": 1514,
+		"Percentagewitharrest": 0.68
+	},
+	{
+		"City": "Miami",
+		"Total number of cases": 744,
+		"Percentagewitharrest": 0.40
+	},
+	{
+		"City": "Milwaukee",
+		"Total number of cases": 1115,
+		"Percentagewitharrest": 0.64
+	},
+	{
+		"City": "Minneapolis",
+		"Total number of cases": 366,
+		"Percentagewitharrest": 0.49
+	},
+	{
+		"City": "Nashville",
+		"Total number of cases": 767,
+		"Percentagewitharrest": 0.64
+	},
+	{
+		"City": "New Orleans",
+		"Total number of cases": 1434,
+		"Percentagewitharrest": 0.35
+	},
+	{
+		"City": "New York",
+		"Total number of cases": "627",
+		"Percentagewitharrest": 0.61
+	},
+	{
+		"City": "Oakland",
+		"Total number of cases": 947,
+		"Percentagewitharrest": 0.46
+	},
+	{
+		"City": "Oklahoma City",
+		"Total number of cases": 672,
+		"Percentagewitharrest": 0.52
+	},
+	{
+		"City": "Omaha",
+		"Total number of cases": 409,
+		"Percentagewitharrest": 0.59
+	},
+	{
+		"City": "Philadelphia",
+		"Total number of cases": 3037,
+		"Percentagewitharrest": 0.55
+	},
+	{
+		"City": "Phoenix",
+		"Total number of cases": 914,
+		"Percentagewitharrest": 0.45
+	},
+	{
+		"City": "Pittsburgh",
+		"Total number of cases": 631,
+		"Percentagewitharrest": 0.47
+	},
+	{
+		"City": "Richmond",
+		"Total number of cases": 429,
+		"Percentagewitharrest": 0.71
+	},
+	{
+		"City": "Sacramento",
+		"Total number of cases": 376,
+		"Percentagewitharrest": 0.64
+	},
+	{
+		"City": "San Antonio",
+		"Total number of cases": 833,
+		"Percentagewitharrest": 0.57
+	},
+	{
+		"City": "San Bernardino",
+		"Total number of cases": 275,
+		"Percentagewitharrest": 0.38
+	},
+	{
+		"City": "San Diego",
+		"Total number of cases": 461,
+		"Percentagewitharrest": 0.62
+	},
+	{
+		"City": "San Francisco",
+		"Total number of cases": 663,
+		"Percentagewitharrest": 0.49
+	},
+	{
+		"City": "Savannah",
+		"Total number of cases": 246,
+		"Percentagewitharrest": 0.54
+	},
+	{
+		"City": "St. Louis",
+		"Total number of cases": 1677,
+		"Percentagewitharrest": 0.46
+	},
+	{
+		"City": "Stockton",
+		"Total number of cases": 444,
+		"Percentagewitharrest": 0.40
+	},
+	{
+		"City": "Tampa",
+		"Total number of cases": 208,
+		"Percentagewitharrest": 0.54
+	},
+	{
+		"City": "Tulsa",
+		"Total number of cases": 584,
+		"Percentagewitharrest": 0.68
+	},
+	{
+		"City": "Washington",
+		"Total number of cases": 1345,
+		"Percentagewitharrest": 0.56
+	}
+]
+
+  // Reference: the University of Melbourne, (2021). Workshop 04 materials, 
+  //https://canvas.lms.unimelb.edu.au/courses/105922/pages/week-4-introduction-to-web-programming?module_item_id=3147804, Viewed: 19 September 2021
+
+table.sort((rowTwo, rowOne) => {
+  return rowOne.Percentagewitharrest - rowTwo.Percentagewitharrest;
+})
+
+let chart2 = new Chart('chart2', {
+  type: 'bar',
+
+  data: {
+    datasets: [{
+      data: table,
+      parsing: {
+        xAxisKey: 'Percentagewitharrest',
+        yAxisKey: 'City'
+      },
+      backgroundColor: [
+      '#F5AD2A',
+      '#FFBE45'
+    ],
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    scales: {
+      x: {
+        grid: {
+          display: false
+        },
+        ticks: {
+          callback: value => (value * 100) + '%'
+        },
+        title: {
+          display: true,
+          text: 'Major city across the US'
+        }
+      },
+      y: {
+        grid: {},
+        ticks: {},
+        title: {}
+      }
+    },
+    animation: false,
+    plugins: {
+      legend: {
+        display: false
+      },
+      title: {
+        display: true,
+        text: 'Percentage with an arrest in each city of the United Stats, 2007-2017'
+      },
+      tooltip: {
+        displayColors: false,
+        xAlign: 'bottom',
+        titleAlign: 'center',
+        bodyAlign: 'center',
+        callbacks: {
+          label: context => Number(context.parsed.x * 100).toFixed(0) + '%',
+        }
+      }
+    }
+  }
+});
+
+</script>
+ 
+</body>
+</html>
